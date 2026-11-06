@@ -5,3 +5,8 @@ node_modules/
 captures/
 *.pcapng
 *.btsnoop
+
+# ESP32
+esp32/.pio/
+esp32/data/
+esp32/src/config.h

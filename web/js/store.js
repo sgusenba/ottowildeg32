@@ -4,7 +4,7 @@
 const KEY = 'g32-state-v1';
 
 export function defaults() {
-  return { targets: {}, gas: { profiles: [], active: null, lowPercent: 20 } };
+  return { targets: {}, gas: { profiles: [], active: null, lowPercent: 10 } };
 }
 
 export function load() {

@@ -23,6 +23,7 @@ node test/decoder.test.mjs && node test/logic.test.mjs   # Tests (Node 18+)
 ```
 
 Web Bluetooth funktioniert nur auf `localhost` oder über https, und nur in Chrome/Edge (nicht Firefox/Safari).
+Für Handy (auch iOS) ohne Laptop: ESP32-Bridge, siehe [esp32/README.md](esp32/README.md).
 
 Vorher:
 1. Otto-Wilde-App am Handy **komplett schließen** (der Grill erlaubt vermutlich nur eine BLE-Verbindung).
@@ -43,7 +44,8 @@ web/                Web-App (Plain JS)
   js/store.js       Speicherung im Browser (localStorage)
   js/transport/     webbluetooth.js (Laptop), websocket.js (ESP32, Platzhalter)
   test/             Unit-Tests (Decoder, Ziele, Gas)
-esp32/              Firmware der Bridge (folgt)
+esp32/              ESP32-Bridge (PlatformIO): BLE -> WLAN, liefert das Dashboard aus, siehe esp32/README.md
+tools/mock-bridge.mjs  Simulierte Bridge zum Testen ohne Hardware
 ```
 
 ## Sicherheit

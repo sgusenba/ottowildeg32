@@ -49,7 +49,7 @@ Ausgangsbasis unten. "Offen" ist ungeklärt.
 | 25 | Licht an | ≠ 0 (bestätigt) |
 | 26–29 | unbekannt | im Test konstant `0d 01 04 05` |
 | 30 | unbekannt | im Test konstant `ff` |
-| 31 | GasBuddy Füllstand in % | > 100 = unbekannt; Bedeutung unbestätigt (im Test `08`) |
+| 31 | GasBuddy Füllstand in % | > 100 = unbekannt; **bestätigt:** entspricht der Anzeige "Aktuelle Füllmenge" der Original-App (Byte `08` = 8 %) |
 | 32 | Schlussbyte | `c3`, nur in Notifications; ändert sich nicht mit den Daten, also kein Prüfwert |
 
 - Wert 1500 °C (`hi=150, lo=0`) bedeutet "nicht vorhanden/kein Fühler" (bestätigt: nicht gesteckte Fühler).
@@ -70,8 +70,10 @@ Ausgangsbasis unten. "Offen" ist ungeklärt.
   `tankInstalledDate`, `tareWeight`. Die Gas-Kalibrierung liegt also zumindest auch in der Cloud.
 
 ## Offen
-- [ ] **GasBuddy:** Was bedeutet der Rohwert (624–628) und das Prozent-Byte (8)? Zu klären mit der Original-App
-  (welche Flasche liegt auf, welcher Wert wird dort gezeigt). Die Gas-Kalibrierung in der App deckt das ab.
+- [x] GasBuddy-Prozent (Byte 31) = Anzeige der Original-App (Screenshot: 8 %, Tara 4,6 kg, Füllgewicht 7,5 kg,
+  kritische Füllmenge 10 %). Die Original-App speichert Tara/Füllgewicht/kritisch als Flaschenprofil (Cloud, `gasbuddyInfo`).
+- [ ] GasBuddy-Rohwert (Bytes 22–23, ~625) bleibt unklar: bei 8 % von 2,9 kg Nutzgas (~0,23 kg) passt weder Brutto-
+  noch Nettogramm direkt. Ein zweiter Messpunkt (z. B. andere Flasche/Füllstand) würde das klären.
 - [ ] Rolle von `dc0f41e1` (write) sowie `5f8b9bdb` (write) und `5f8b9bdc` (notify). Lesewerte der lesbaren
   Characteristics (Modell, Firmware, `5f8b9bd0/da/db/dc`) per Explorer-Button "Lesbare Werte lesen" erfassen.
 - [ ] Schreibbefehle (Zieltemperatur am Grill, GasBuddy anlernen): In keinem der Fremdprojekte vorhanden, deren

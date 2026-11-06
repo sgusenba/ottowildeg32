@@ -25,19 +25,25 @@ So gibt es einen einzigen Decoder, der ohne ESP32 testbar ist.
 class Transport extends EventTarget {
   async connect()          // Verbindung aufbauen
   async disconnect()
-  async write(bytes)       // Uint8Array an den Grill (Command-Characteristic)
-  // Events: 'packet' (detail: {uuid, bytes}), 'status' (detail: string), 'error'
+  // Events: 'packet' (detail: {uuid, bytes}), 'status' (detail: string), 'error', 'disconnected'
+  // Nur Lesen: kein write() im Transport
 }
 ```
 
 Implementierungen: `transport/webbluetooth.js` (Laptop), `transport/websocket.js` (ESP32).
 
-### ESP32-Bridge
-- NimBLE-Arduino als BLE-Central, Reconnect bei Abbruch.
-- Webserver liefert `web/` aus LittleFS, WebSocket `/ws`.
-- WebSocket-Protokoll: binär; Frame = `[type:1][uuid-index:1][payload...]`
-  (type 0x01 = Notification vom Grill, 0x02 = Write zum Grill, 0x10 = Status-Text).
-- Zugriffsschutz: einfacher Token beim WebSocket-Connect.
+### ESP32-Bridge (`esp32/`)
+- NimBLE-Arduino als BLE-Central in eigenem FreeRTOS-Task: Scannen (Name `OWG-G32C…` oder Service-UUID),
+  verbinden, `dc0f41e2` abonnieren, Reconnect, Watchdog (15 s ohne Paket -> trennen und neu verbinden).
+- `WebServer` (Port 80) liefert `index.html`, `style.css` und `js/` aus LittleFS. `WebSocketsServer` auf Port 81.
+- Die Bridge ist **read-only**: kein Schreibpfad zum Grill, eingehende WebSocket-Daten werden ignoriert.
+- WebSocket-Frames (binär, ESP32 -> Browser): `[type:1][index:1][payload...]`
+  - `0x01` Notification der Daten-Characteristic (index 0 = `dc0f41e2`), Payload = Rohpaket (32/33 Byte)
+  - `0x10` Status-Text (UTF-8)
+- Neu verbundene Browser bekommen sofort Status und das letzte Paket.
+- Optional: Token als Query-Parameter beim WebSocket-Connect (`?token=...`).
+- mDNS: `http://<HOSTNAME>.local`. Browser-Seite: Bridge-Modus automatisch, wenn die Seite nicht von `localhost` kommt
+  (oder per `?bridge=<host>`), siehe `web/js/app.js`.
 
 ## Meilensteine
 | # | Inhalt | Status |
@@ -46,12 +52,8 @@ Implementierungen: `transport/webbluetooth.js` (Laptop), `transport/websocket.js
 | 1 | Decoder + Dashboard (nur lesen) via Web Bluetooth | gebaut, Test am Grill steht aus |
 | 2 | Zieltemperaturen in der App (+/-, Status, Ton) | gebaut (`targets.js`) |
 | 3 | Gasflasche anlernen in der App (Profile, Kalibrierung) | gebaut (`gas.js`) |
-| 4 | ESP32-Bridge + WebSocket-Transport | offen |
+| 4 | ESP32-Bridge + WebSocket-Transport | gebaut; Browser-Seite mit Mock getestet, Firmware noch nicht auf Hardware |
 | 5 | Optional: Ziele/Profile zusätzlich auf dem ESP32 ablegen, damit sie geräteübergreifend gelten | offen |
-
-Hinweis zu Meilenstein 4: Fertige ESPHome-Projekte lesen die Daten-Characteristic bereits stabil per BLE.
-Der ESP32 braucht also nur Connect, Read/Notify und das Durchreichen. Das NimBLE-Gerüst bleibt klein.
-Bei Read-only-Characteristic (kein Notify) pollt die Bridge im 1–2-Sekunden-Takt.
 
 ## Sicherheitsregeln
 - Keine Zünd-/Brennerbefehle implementieren.

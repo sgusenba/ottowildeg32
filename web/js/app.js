@@ -1,4 +1,5 @@
 import { WebBluetoothTransport } from './transport/webbluetooth.js';
+import { WebSocketTransport } from './transport/websocket.js';
 import { decodePacket, toHex } from './decoder.js';
 import { G32 } from './g32.js';
 import { RANGES, validateTarget, clampTarget, targetState } from './targets.js';
@@ -291,27 +292,50 @@ function alarmBeep() {
 }
 
 // ---------- Verbindung ----------
-$('connect').addEventListener('click', async () => {
-  try {
-    // AudioContext muss in einer Nutzeraktion entstehen
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    transport = new WebBluetoothTransport({ acceptAll: false });
-    transport.addEventListener('status', (e) => ($('status').textContent = e.detail));
-    transport.addEventListener('error', (e) => ($('status').textContent = `Fehler: ${e.detail.message}`));
-    transport.addEventListener('disconnected', () => {
-      $('connect').disabled = false;
-      $('disconnect').disabled = true;
-    });
-    transport.addEventListener('packet', (e) => {
-      if (e.detail.uuid !== G32.DATA_CHAR) return;
-      const d = decodePacket(e.detail.bytes);
-      if (!d) return;
-      lastData = d;
-      lastPacketAt = Date.now();
-      $('raw').textContent = toHex(e.detail.bytes);
-      render();
-    });
+// Zwei Wege zum Grill, beide liefern dieselben 'packet'-Events:
+//  - Web Bluetooth (Laptop, http://localhost): Button "Verbinden"
+//  - ESP32-Bridge per WebSocket: Seite wird vom ESP32 ausgeliefert (oder ?bridge=<host> zum Testen)
+const params = new URLSearchParams(location.search);
+const isLocalHost = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+const bridgeMode = params.has('bridge') || !isLocalHost;
+const bridgeUrl = `ws://${params.get('bridge') || location.hostname}:${params.get('wsport') || 81}/`;
+const bridgeToken = params.get('token') || '';
+let retryTimer = null;
 
+// AudioContext muss in einer Nutzeraktion entstehen
+function unlockAudio() {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume?.();
+  } catch { /* Ton nicht verfügbar */ }
+}
+document.addEventListener('pointerdown', unlockAudio, { once: true });
+
+function attach(t) {
+  t.addEventListener('status', (e) => { if (t === transport) $('status').textContent = e.detail; });
+  t.addEventListener('error', (e) => { if (t === transport) $('status').textContent = `Fehler: ${e.detail.message}`; });
+  t.addEventListener('disconnected', () => {
+    if (t !== transport) return;
+    $('connect').disabled = false;
+    $('disconnect').disabled = true;
+    if (bridgeMode) scheduleBridgeRetry();
+  });
+  t.addEventListener('packet', (e) => {
+    if (t !== transport || e.detail.uuid !== G32.DATA_CHAR) return;
+    const d = decodePacket(e.detail.bytes);
+    if (!d) return;
+    lastData = d;
+    lastPacketAt = Date.now();
+    $('raw').textContent = toHex(e.detail.bytes);
+    render();
+  });
+}
+
+async function connectBluetooth() {
+  try {
+    unlockAudio();
+    transport = new WebBluetoothTransport({ acceptAll: false });
+    attach(transport);
     await transport.connect();
     await transport.startData(G32.DATA_CHAR, { pollMs: 2000 });
     $('connect').disabled = true;
@@ -319,15 +343,46 @@ $('connect').addEventListener('click', async () => {
   } catch (err) {
     $('status').textContent = `Fehler: ${err.message}`;
   }
-});
+}
 
+async function connectBridge() {
+  clearTimeout(retryTimer);
+  retryTimer = null;
+  const old = transport;
+  transport = new WebSocketTransport({ url: bridgeUrl, token: bridgeToken });
+  attach(transport);
+  old?.disconnect?.();
+  $('connect').disabled = true;
+  try {
+    await transport.connect();
+    $('disconnect').disabled = false;
+  } catch {
+    $('status').textContent = `Bridge nicht erreichbar (${bridgeUrl})`;
+    $('connect').disabled = false;
+    scheduleBridgeRetry();
+  }
+}
+
+function scheduleBridgeRetry() {
+  if (retryTimer) return;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    connectBridge();
+  }, 3000);
+}
+
+$('connect').addEventListener('click', () => (bridgeMode ? connectBridge() : connectBluetooth()));
 $('disconnect').addEventListener('click', async () => {
   await transport?.disconnect();
 });
 
 setInterval(render, 2000); // Stale-Erkennung und Alarm-Wiederholung
 
-if (!WebBluetoothTransport.supported()) {
+if (bridgeMode) {
+  $('connect').textContent = 'Neu verbinden';
+  $('disconnect').hidden = true;
+  connectBridge();
+} else if (!WebBluetoothTransport.supported()) {
   $('status').textContent = 'Web Bluetooth nicht verfügbar – Chrome/Edge auf localhost nutzen';
   $('connect').disabled = true;
 }

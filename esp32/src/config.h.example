@@ -1,0 +1,13 @@
+// Kopieren nach config.h und anpassen. config.h wird nicht eingecheckt (.gitignore).
+#pragma once
+
+#define WIFI_SSID "MeinWLAN"
+#define WIFI_PASS "MeinPasswort"
+
+// Erreichbar unter http://<HOSTNAME>.local (mDNS) oder über die IP aus dem Serial-Monitor
+#define HOSTNAME "g32"
+
+// Optional: einfacher Zugriffsschutz für den WebSocket. Leer lassen = aus.
+// Nur Buchstaben/Ziffern. Die Seite dann mit http://g32.local/?token=<WS_TOKEN> öffnen.
+// Kein Ersatz für ein sicheres Netz: Die Bridge liefert nur Lesewerte, schreibt aber nie an den Grill.
+#define WS_TOKEN ""
