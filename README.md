@@ -8,8 +8,8 @@ Werte auslesen, Zieltemperaturen setzen, später Gasflasche (GasBuddy) anlernen.
 - **Test am Laptop:** Dieselbe Web-App spricht direkt per Web Bluetooth (Chrome/Edge) mit dem Grill.
 
 > Status: Lesen ist aus Fremdprojekten bekannt und im Dashboard umgesetzt, aber noch nicht am Grill getestet.
-> **Zieltemperatur am Grill setzen** ist offen: Das Schreibprotokoll ist nirgends dokumentiert und muss per
-> HCI-Snoop-Log ermittelt werden. Siehe [docs/SPEC.md](docs/SPEC.md) und [docs/PROTOCOL.md](docs/PROTOCOL.md).
+> Zieltemperaturen und Gasflasche werden **in der App** gesetzt bzw. angelernt (lokal im Browser), nicht am Grill.
+> Siehe [docs/SPEC.md](docs/SPEC.md) und [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 ## Schnellstart (Laptop)
 
@@ -17,9 +17,9 @@ Werte auslesen, Zieltemperaturen setzen, später Gasflasche (GasBuddy) anlernen.
 cd web
 python3 -m http.server 8000
 # Chrome/Edge öffnen:
-#   http://localhost:8000/index.html     Dashboard (Zonen, Fühler, Gas, Alarmgrenzen)
+#   http://localhost:8000/index.html     Dashboard (Zonen, Fühler, Ziele, Gas, Flaschenprofile)
 #   http://localhost:8000/explorer.html  BLE-Explorer (Services, Rohdaten, unbekannte Bytes)
-node test/decoder.test.mjs              # Decoder-Test (Node 18+)
+node test/decoder.test.mjs && node test/logic.test.mjs   # Tests (Node 18+)
 ```
 
 Web Bluetooth funktioniert nur auf `localhost` oder über https, und nur in Chrome/Edge (nicht Firefox/Safari).
@@ -34,20 +34,23 @@ Vorher:
 docs/SPEC.md        Architektur, Meilensteine, Sicherheitsregeln
 docs/PROTOCOL.md    Was über das BLE-Protokoll bekannt ist (wird laufend ergänzt)
 web/                Web-App (Plain JS)
-  index.html        Dashboard: Zonen, Fühler, Gas, Haube/Licht, lokale Alarmgrenzen mit Ton
+  index.html        Dashboard: Zonen, Fühler, Zieltemperaturen, Gas mit Flaschenprofilen, Haube/Licht, Ton
   explorer.html     Services/Characteristics, Rohdaten-Log, dekodierte Werte
   js/g32.js         UUIDs und Konstanten
   js/decoder.js     Rohbytes -> Werte
+  js/targets.js     Zielwerte: Grenzen, Status heizt/erreicht/zu heiß
+  js/gas.js         Flaschenprofile, Zwei-Punkt-Kalibrierung
+  js/store.js       Speicherung im Browser (localStorage)
   js/transport/     webbluetooth.js (Laptop), websocket.js (ESP32, Platzhalter)
-  test/             Decoder-Test
+  test/             Unit-Tests (Decoder, Ziele, Gas)
 esp32/              Firmware der Bridge (folgt)
 ```
 
 ## Sicherheit
 
-- Die App schreibt nur Temperatur-Sollwerte (und später GasBuddy-Werte), **nie** Zünd- oder Brennerbefehle.
-- Sollwerte werden vor dem Senden auf Bereich und Schrittweite geprüft.
-- Ein Grill mit gesetzter Zieltemperatur darf nicht unbeaufsichtigt laufen.
+- Die App sendet **nichts** an den Grill, nur Lesen. Ziele und Gasprofile sind reine App-Funktionen.
+- Ziele werden auf Bereich und Schrittweite geprüft.
+- Ein Ton ersetzt keine Aufsicht: Einen heißen Grill nie unbeaufsichtigt lassen.
 - Inoffizielles Projekt, nicht von Otto Wilde. Nutzung auf eigene Gefahr.
 
 ## Danksagung

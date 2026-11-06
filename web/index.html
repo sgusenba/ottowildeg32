@@ -18,7 +18,9 @@
       </div>
     </header>
 
-    <div id="alarm" class="alarm" hidden></div>
+    <div id="alarm" class="banner alarm" hidden></div>
+    <div id="notice" class="banner notice" hidden></div>
+    <div id="msg" class="banner msg" hidden></div>
 
     <section>
       <h2>Zonen</h2>
@@ -35,10 +37,46 @@
       <div class="card" id="gas">
         <div class="bar"><div id="gasBar" class="bar-fill"></div></div>
         <div class="gas-values"><span id="gasPercent">–</span><span id="gasGrams" class="muted">–</span></div>
+        <div class="muted" id="gasSource">–</div>
         <label class="limit">Warnung unter
           <input id="gasLimit" type="number" min="0" max="100" step="5" inputmode="numeric"> %
         </label>
       </div>
+
+      <details id="gasSetup">
+        <summary>Gasflasche anlernen</summary>
+        <p class="hint">
+          Ohne Profil zeigt die App den Wert, den der Grill meldet. Mit Profil rechnet die App selbst:
+          Flasche <b>leer</b> aufstellen, warten bis der Rohwert stabil ist, „Aktuellen Wert als Leer“ drücken.
+          Dasselbe mit der <b>vollen</b> Flasche. Alternativ Werte eintragen oder Tara + Füllmenge (steht auf der Flasche).
+          Der Rohwert wird unten angezeigt.
+        </p>
+        <div class="muted">Rohwert: <b id="gasRaw">–</b></div>
+
+        <label>Profil
+          <select id="profileSelect"></select>
+        </label>
+        <label>Name
+          <input id="profileName" type="text" placeholder="z. B. 11-kg-Flasche">
+        </label>
+        <div class="row">
+          <label class="limit">Leer (g) <input id="gasEmpty" type="number" step="10" inputmode="numeric"></label>
+          <button id="learnEmpty" class="secondary">Aktuellen Wert als Leer</button>
+        </div>
+        <div class="row">
+          <label class="limit">Voll (g) <input id="gasFull" type="number" step="10" inputmode="numeric"></label>
+          <button id="learnFull" class="secondary">Aktuellen Wert als Voll</button>
+        </div>
+        <div class="row">
+          <label class="limit">Tara (g) <input id="gasTare" type="number" step="10" inputmode="numeric"></label>
+          <label class="limit">Füllmenge (g) <input id="gasCapacity" type="number" step="500" inputmode="numeric" value="11000"></label>
+          <button id="fromTare" class="secondary">Leer/Voll berechnen</button>
+        </div>
+        <div class="row">
+          <button id="profileSave">Profil speichern</button>
+          <button id="profileDelete" class="secondary">Profil löschen</button>
+        </div>
+      </details>
     </section>
 
     <section class="chips">
@@ -47,9 +85,8 @@
     </section>
 
     <p class="hint">
-      Alarmgrenzen gelten nur lokal in diesem Browser und lösen einen Ton aus.
-      Die Zieltemperatur am Grill zu setzen folgt, sobald das Schreibprotokoll bekannt ist
-      (siehe <a href="explorer.html">Explorer</a> und docs/PROTOCOL.md).
+      Zieltemperaturen und Gasprofile werden nur in diesem Browser gespeichert; der Grill bekommt davon nichts mit.
+      Die App meldet „Ziel erreicht“ und warnt bei „zu heiß“.
     </p>
 
     <details>

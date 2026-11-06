@@ -29,24 +29,13 @@ export function decodePacket(bytes) {
     zones: [6, 8, 10, 12].map((i) => temp(bytes, i)),
     probes: [14, 16, 18, 20].map((i) => temp(bytes, i)),
     gas: {
-      grams: Math.min(gramsRaw, G32.GAS_MAX_G),
-      percent: percent > 100 ? null : percent,
+      rawGrams: gramsRaw, // ungekürzt, Basis für die Kalibrierung in der App
+      grams: Math.min(gramsRaw, G32.GAS_MAX_G), // Anzeige-Wert wie in der Original-App
+      percent: percent > 100 ? null : percent, // vom Grill gemeldet
     },
     hoodOpen: bytes[24] !== 0,
     lightOn: bytes[25] !== 0,
     unknown: { header: bytes.slice(0, 6), b26_29: bytes.slice(26, 30), b30: bytes[30] },
     length: bytes.length,
   };
-}
-
-// Sollwert-Prüfung für später (Schreibprotokoll noch unbekannt). Grenzen nach Analyse anpassen!
-export const LIMITS = { min: 50, max: 400, step: 5 }; // °C, vorläufig
-
-export function validateTarget(celsius) {
-  if (!Number.isFinite(celsius)) throw new Error('Ungültiger Sollwert');
-  if (celsius < LIMITS.min || celsius > LIMITS.max) {
-    throw new Error(`Sollwert außerhalb ${LIMITS.min}–${LIMITS.max} °C`);
-  }
-  if (celsius % LIMITS.step !== 0) throw new Error(`Schrittweite ${LIMITS.step} °C`);
-  return celsius;
 }

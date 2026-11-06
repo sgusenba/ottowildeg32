@@ -34,6 +34,7 @@ pre { margin: 0; padding: 12px; background: var(--card); border-radius: 6px; ove
 @media (min-width: 560px) { .grid { grid-template-columns: repeat(4, 1fr); } }
 .card { background: var(--card); border: 2px solid transparent; border-radius: 10px; padding: 12px; }
 .card.over { border-color: var(--danger); }
+.card.reached { border-color: var(--ok); }
 .card.inactive .big { color: var(--muted); }
 .big { font-size: 1.9rem; font-weight: 600; line-height: 1.2; margin: 4px 0 8px; }
 .limit { display: block; font-size: .85rem; }
@@ -44,7 +45,19 @@ pre { margin: 0; padding: 12px; background: var(--card); border-radius: 6px; ove
 .gas-values { display: flex; justify-content: space-between; margin: 8px 0; font-size: 1.3rem; font-weight: 600; }
 .gas-values .muted { font-weight: 400; }
 
-.alarm { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--danger); color: #fff; font-weight: 600; }
+.banner { margin-top: 12px; padding: 10px 12px; border-radius: 8px; font-weight: 600; }
+.banner.alarm { background: var(--danger); color: #fff; }
+.banner.notice { background: var(--ok); color: #fff; }
+.banner.msg { background: var(--card); border: 1px solid var(--border); font-weight: 400; }
+.state { min-height: 1.4em; font-size: .85rem; color: var(--muted); }
+.bar.small { height: 6px; margin-bottom: 8px; }
+.target-row { display: flex; align-items: center; gap: 6px; }
+.target-row input { width: 4.5em; text-align: center; }
+button.step { padding: 4px 12px; font-size: 1.1rem; line-height: 1.2; }
+select { width: 100%; padding: 8px; margin: 4px 0 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--card); color: var(--fg); font: inherit; }
+#gasSetup label { margin-top: 8px; }
+#gasSetup .row { align-items: end; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { padding: 4px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-size: .9rem; }
 details { margin-top: 16px; }

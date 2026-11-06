@@ -39,9 +39,9 @@ noch zu verifizieren. "Offen" ist ungeklärt.
 ## Offen
 - [ ] Welche weiteren Characteristics hat der Service (Write/Notify)? Der Explorer listet sie auf.
 - [ ] Notifications statt Polling? (Explorer zeigt die Properties der Daten-Characteristic.)
-- [ ] **Schreibbefehl für Zieltemperatur**: In keinem der Fremdprojekte vorhanden. Deren "Temperaturlimits" sind
-  reine Display-Alarme und werden nicht an den Grill gesendet. Nur über HCI-Snoop-Log der Original-App zu klären.
-- [ ] GasBuddy anlernen per BLE oder nur Cloud?
+- [ ] Schreibbefehle (Zieltemperatur am Grill, GasBuddy anlernen): In keinem der Fremdprojekte vorhanden, deren
+  "Temperaturlimits" sind reine Display-Alarme. **Nicht mehr nötig:** Die App setzt Ziele und Gasprofile selbst
+  (siehe SPEC.md). Nur relevant, falls der Grill die Werte später selbst regeln soll (HCI-Snoop-Log der Original-App).
 - [ ] Bedeutung der Bytes 0–5, 26–30.
 - [ ] Ist ein Pairing/Bonding nötig, und erlaubt der Grill gleichzeitig mehrere Verbindungen?
 

@@ -1,144 +1,293 @@
 import { WebBluetoothTransport } from './transport/webbluetooth.js';
 import { decodePacket, toHex } from './decoder.js';
 import { G32 } from './g32.js';
+import { RANGES, validateTarget, clampTarget, targetState } from './targets.js';
+import { calibratedGas, validateProfile, profileFromTare } from './gas.js';
+import { load, save } from './store.js';
 
 const $ = (id) => document.getElementById(id);
-const STORE_KEY = 'g32-limits';
 const STALE_MS = 10000;
-const BEEP_EVERY_MS = 5000;
+const ALARM_EVERY_MS = 5000;
 
+const state = load();
 let transport = null;
 let lastPacketAt = 0;
 let lastData = null;
 let audioCtx = null;
-let lastBeepAt = 0;
+let lastAlarmAt = 0;
+let msgTimer = null;
+const prevStates = new Map();
 
-// ---------- lokale Alarmgrenzen ----------
-function loadLimits() {
-  try {
-    return JSON.parse(localStorage.getItem(STORE_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-function saveLimits() {
-  try {
-    localStorage.setItem(STORE_KEY, JSON.stringify(limits));
-  } catch { /* Speicher evtl. blockiert – dann nur für diese Sitzung */ }
-}
-const limits = loadLimits();
-limits.gas ??= 20; // Standard-Warnschwelle Gas in %
+const persist = () => save(state);
 
-// ---------- UI aufbauen ----------
-function buildCards(containerId, prefix, label) {
-  const el = $(containerId);
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function showMsg(text) {
+  const m = $('msg');
+  m.textContent = text;
+  m.hidden = false;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => (m.hidden = true), 4000);
+}
+
+// ---------- Zonen / Fühler ----------
+const STATE_TEXT = {
+  idle: () => '',
+  heating: (t, target) => `heizt · noch ${Math.max(0, Math.round(target - t))} °C`,
+  reached: () => 'Ziel erreicht',
+  over: () => 'zu heiß',
+};
+
+function buildCards(containerId, kind, label) {
+  const range = RANGES[kind];
   const cards = [];
   for (let i = 0; i < 4; i++) {
-    const key = `${prefix}${i}`;
-    const card = document.createElement('div');
-    card.className = 'card';
+    const key = `${kind}${i}`;
+    const card = el('div', 'card');
+    const name = el('div', 'muted', `${label} ${i + 1}`);
+    const value = el('div', 'big', '–');
+    const status = el('div', 'state', '');
+    const bar = el('div', 'bar small');
+    const fill = el('div', 'bar-fill');
+    bar.append(fill);
 
-    const name = document.createElement('div');
-    name.className = 'muted';
-    name.textContent = `${label} ${i + 1}`;
-
-    const value = document.createElement('div');
-    value.className = 'big';
-    value.textContent = '–';
-
-    const lim = document.createElement('label');
-    lim.className = 'limit';
-    lim.append('Limit ');
+    const row = el('div', 'target-row');
+    const minus = el('button', 'step secondary', '−');
+    const plus = el('button', 'step secondary', '+');
     const input = document.createElement('input');
     input.type = 'number';
-    input.min = '0';
-    input.max = '500';
-    input.step = '5';
+    input.min = String(range.min);
+    input.max = String(range.max);
+    input.step = String(range.step);
     input.inputMode = 'numeric';
-    input.value = limits[key] ?? '';
-    input.addEventListener('change', () => {
-      const v = parseFloat(input.value);
-      if (Number.isFinite(v)) limits[key] = v;
-      else delete limits[key];
-      saveLimits();
-      render();
-    });
-    lim.append(input, ' °C');
+    input.placeholder = 'Ziel';
+    input.setAttribute('aria-label', `Ziel ${label} ${i + 1}`);
+    row.append(minus, input, el('span', 'muted', '°C'), plus);
 
-    card.append(name, value, lim);
-    el.append(card);
-    cards.push({ key, card, value });
+    const c = { key, kind, card, value, status, fill, input };
+    input.addEventListener('change', () => setTarget(c, input.value));
+    minus.addEventListener('click', () => nudge(c, -range.step));
+    plus.addEventListener('click', () => nudge(c, +range.step));
+
+    card.append(name, value, status, bar, row);
+    $(containerId).append(card);
+    syncInput(c);
+    cards.push(c);
   }
   return cards;
 }
 
-const zoneCards = buildCards('zones', 'z', 'Zone');
-const probeCards = buildCards('probes', 'p', 'Fühler');
+function syncInput(c) {
+  c.input.value = state.targets[c.key] ?? '';
+}
 
-$('gasLimit').value = limits.gas ?? 20;
+function setTarget(c, raw) {
+  if (raw === '' || raw == null) {
+    delete state.targets[c.key];
+  } else {
+    try {
+      state.targets[c.key] = validateTarget(c.kind, Number(raw));
+    } catch (e) {
+      showMsg(e.message);
+    }
+  }
+  persist();
+  syncInput(c);
+  render();
+}
+
+function nudge(c, delta) {
+  const cur = state.targets[c.key];
+  if (cur === undefined) {
+    const measured = lastData ? (c.kind === 'zone' ? lastData.zones : lastData.probes)[Number(c.key.slice(-1))] : null;
+    const base = measured != null ? Math.round(measured / RANGES[c.kind].step) * RANGES[c.kind].step : RANGES[c.kind].min;
+    setTarget(c, clampTarget(c.kind, base));
+  } else {
+    setTarget(c, clampTarget(c.kind, cur + delta));
+  }
+}
+
+const zoneCards = buildCards('zones', 'zone', 'Zone');
+const probeCards = buildCards('probes', 'probe', 'Fühler');
+
+// ---------- Gas ----------
+$('gasLimit').value = state.gas.lowPercent;
 $('gasLimit').addEventListener('change', () => {
   const v = parseFloat($('gasLimit').value);
-  if (Number.isFinite(v)) limits.gas = v;
-  else delete limits.gas;
-  saveLimits();
+  if (Number.isFinite(v) && v >= 0 && v <= 100) state.gas.lowPercent = v;
+  else $('gasLimit').value = state.gas.lowPercent;
+  persist();
   render();
 });
 
-// ---------- Rendering ----------
-function fmtTemp(t) {
-  return t == null ? '–' : `${Math.round(t)} °C`;
+const activeProfile = () => state.gas.profiles.find((p) => p.id === state.gas.active) || null;
+
+function renderProfiles() {
+  const sel = $('profileSelect');
+  sel.textContent = '';
+  const none = el('option', null, '– neues Profil –');
+  none.value = '';
+  sel.append(none);
+  for (const p of state.gas.profiles) {
+    const o = el('option', null, p.name);
+    o.value = p.id;
+    sel.append(o);
+  }
+  sel.value = state.gas.active || '';
+  const p = activeProfile();
+  $('profileName').value = p ? p.name : '';
+  $('gasEmpty').value = p ? p.empty : '';
+  $('gasFull').value = p ? p.full : '';
 }
 
-function updateCards(cards, values, alarms) {
+$('profileSelect').addEventListener('change', () => {
+  state.gas.active = $('profileSelect').value || null;
+  persist();
+  renderProfiles();
+  render();
+});
+
+function learn(inputId) {
+  if (!lastData) return showMsg('Keine Daten vom Grill – erst verbinden.');
+  $(inputId).value = lastData.gas.rawGrams;
+}
+$('learnEmpty').addEventListener('click', () => learn('gasEmpty'));
+$('learnFull').addEventListener('click', () => learn('gasFull'));
+
+$('fromTare').addEventListener('click', () => {
+  const tare = parseFloat($('gasTare').value);
+  const cap = parseFloat($('gasCapacity').value);
+  if (!Number.isFinite(tare) || !Number.isFinite(cap)) return showMsg('Tara und Füllmenge angeben.');
+  const p = profileFromTare(tare, cap);
+  $('gasEmpty').value = p.empty;
+  $('gasFull').value = p.full;
+});
+
+$('profileSave').addEventListener('click', () => {
+  try {
+    const v = validateProfile({
+      name: $('profileName').value,
+      empty: parseFloat($('gasEmpty').value),
+      full: parseFloat($('gasFull').value),
+    });
+    // gleicher Name -> überschreiben, sonst neues Profil
+    const existing = state.gas.profiles.find((p) => p.name === v.name);
+    if (existing) Object.assign(existing, v);
+    else {
+      const id = `p${Date.now().toString(36)}`;
+      state.gas.profiles.push({ id, ...v });
+      state.gas.active = id;
+    }
+    if (existing) state.gas.active = existing.id;
+    persist();
+    renderProfiles();
+    render();
+    showMsg(`Profil „${v.name}“ gespeichert.`);
+  } catch (e) {
+    showMsg(e.message);
+  }
+});
+
+$('profileDelete').addEventListener('click', () => {
+  const p = activeProfile();
+  if (!p) return showMsg('Kein Profil ausgewählt.');
+  state.gas.profiles = state.gas.profiles.filter((x) => x.id !== p.id);
+  state.gas.active = null;
+  persist();
+  renderProfiles();
+  render();
+});
+
+renderProfiles();
+
+// ---------- Rendering ----------
+const fmtTemp = (t) => (t == null ? '–' : `${Math.round(t)} °C`);
+
+function renderGroup(cards, values, alarms, notices) {
+  let newlyReached = false;
   cards.forEach((c, i) => {
     const t = values ? values[i] : null;
+    const target = state.targets[c.key];
+    const prev = prevStates.get(c.key) || 'idle';
+    const s = targetState(t, target, c.kind, prev);
+    prevStates.set(c.key, s);
+
+    const label = c.card.firstChild.textContent;
     c.value.textContent = fmtTemp(t);
-    const limit = limits[c.key];
-    const over = t != null && Number.isFinite(limit) && t > limit;
-    c.card.classList.toggle('over', over);
+    c.status.textContent = STATE_TEXT[s](t, target);
     c.card.classList.toggle('inactive', t == null);
-    if (over) alarms.push(`${c.card.firstChild.textContent} ${Math.round(t)} °C > ${limit} °C`);
+    c.card.classList.toggle('reached', s === 'reached');
+    c.card.classList.toggle('over', s === 'over');
+    c.fill.style.width = `${t != null && target ? Math.min(100, Math.max(0, (t / target) * 100)) : 0}%`;
+
+    if (s === 'reached' && prev !== 'reached') newlyReached = true;
+    if (s === 'reached') notices.push(`${label}: Ziel ${target} °C erreicht`);
+    if (s === 'over') alarms.push(`${label} zu heiß: ${Math.round(t)} °C (Ziel ${target} °C)`);
   });
+  return newlyReached;
 }
 
 function render() {
   const stale = !lastData || Date.now() - lastPacketAt > STALE_MS;
   const d = stale ? null : lastData;
   const alarms = [];
+  const notices = [];
 
-  updateCards(zoneCards, d?.zones, alarms);
-  updateCards(probeCards, d?.probes, alarms);
+  const reachedZ = renderGroup(zoneCards, d?.zones, alarms, notices);
+  const reachedP = renderGroup(probeCards, d?.probes, alarms, notices);
 
-  const pct = d?.gas.percent;
+  // Gas: kalibriertes Profil bevorzugt, sonst Wert vom Grill
+  const profile = activeProfile();
+  const cal = d && profile ? calibratedGas(d.gas.rawGrams, profile) : null;
+  const pct = cal ? cal.percent : (d?.gas.percent ?? null);
   $('gasPercent').textContent = pct == null ? '–' : `${pct} %`;
-  $('gasGrams').textContent = d ? `${d.gas.grams} g` : '–';
+  $('gasGrams').textContent = cal
+    ? `${(cal.remainingGrams / 1000).toFixed(1)} kg Rest`
+    : d ? `${d.gas.grams} g` : '–';
+  $('gasSource').textContent = cal ? `Profil: ${profile.name}` : 'Wert vom Grill (kein Profil)';
+  $('gasRaw').textContent = d ? `${d.gas.rawGrams} g` : '–';
   $('gasBar').style.width = `${pct == null ? 0 : pct}%`;
-  const gasLow = pct != null && Number.isFinite(limits.gas) && pct <= limits.gas;
+  const gasLow = pct != null && pct <= state.gas.lowPercent;
   $('gas').classList.toggle('over', gasLow);
   if (gasLow) alarms.push(`Gas niedrig: ${pct} %`);
 
   $('hood').textContent = `Haube: ${d ? (d.hoodOpen ? 'offen' : 'zu') : '–'}`;
   $('light').textContent = `Licht: ${d ? (d.lightOn ? 'an' : 'aus') : '–'}`;
 
-  const alarmEl = $('alarm');
-  alarmEl.hidden = alarms.length === 0;
-  alarmEl.textContent = alarms.join(' · ');
-  if (alarms.length) beep();
+  $('alarm').hidden = alarms.length === 0;
+  $('alarm').textContent = alarms.join(' · ');
+  $('notice').hidden = notices.length === 0;
+  $('notice').textContent = notices.join(' · ');
+
+  if (reachedZ || reachedP) beep([660, 880], 0.15);
+  if (alarms.length) alarmBeep();
 }
 
 // ---------- Ton ----------
-function beep() {
+function beep(freqs, dur) {
   if ($('mute').checked || !audioCtx) return;
+  freqs.forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = f;
+    gain.gain.value = 0.2;
+    osc.connect(gain).connect(audioCtx.destination);
+    const t0 = audioCtx.currentTime + i * (dur + 0.05);
+    osc.start(t0);
+    osc.stop(t0 + dur);
+  });
+}
+
+function alarmBeep() {
   const now = Date.now();
-  if (now - lastBeepAt < BEEP_EVERY_MS) return;
-  lastBeepAt = now;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.frequency.value = 880;
-  gain.gain.value = 0.2;
-  osc.connect(gain).connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.4);
+  if (now - lastAlarmAt < ALARM_EVERY_MS) return;
+  lastAlarmAt = now;
+  beep([880, 880, 880], 0.2);
 }
 
 // ---------- Verbindung ----------
