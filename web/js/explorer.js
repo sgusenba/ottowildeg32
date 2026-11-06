@@ -43,7 +43,7 @@ $('connect').addEventListener('click', async () => {
         const d = decodePacket(bytes);
         if (d) {
           $('decoded').textContent = JSON.stringify(
-            { ...d, unknown: { ...d.unknown, header: toHex(d.unknown.header), b26_29: toHex(d.unknown.b26_29) } },
+            { ...d, unknown: { ...d.unknown, magic: toHex(d.unknown.magic), b26_29: toHex(d.unknown.b26_29) } },
             null, 2,
           );
         }

@@ -35,4 +35,41 @@ assert.equal(d2.gas.percent, null);
 assert.equal(decodePacket(new Uint8Array(10)), null);
 assert.equal(decodePacket(null), null);
 
+// --- Echte Pakete aus dem Mitschnitt vom Grill (Geräte-ID auf 00 00 00 00 gesetzt) ---
+const real = (hex) => Uint8Array.from(hex.split(' '), (h) => parseInt(h, 16));
+const idle = 'a3 3a 00 00 00 00 00 28 00 28 00 32 00 28 96 00 96 00 96 00 96 00 02 71 00 00 0d 01 04 05 ff 08 c3';
+
+const r1 = decodePacket(real(idle));
+assert.deepEqual(r1.zones, [4, 4, 5, 4]);          // Außentemperatur ca. 4–5 °C
+assert.deepEqual(r1.probes, [null, null, null, null]);
+assert.equal(r1.gas.rawGrams, 625);
+assert.equal(r1.gas.percent, 8);
+assert.equal(r1.hoodOpen, false);
+assert.equal(r1.lightOn, false);
+assert.equal(r1.length, 33);
+assert.equal(r1.unknown.tail, 0xc3);
+assert.equal(r1.deviceId, '00000000');
+
+// Haube offen + Licht an
+const r2 = decodePacket(real(idle.replace('02 71 00 00', '02 71 01 01')));
+assert.equal(r2.hoodOpen, true);
+assert.equal(r2.lightOn, true);
+
+// nur Licht an
+const r3 = decodePacket(real(idle.replace('02 71 00 00', '02 74 00 01')));
+assert.equal(r3.hoodOpen, false);
+assert.equal(r3.lightOn, true);
+assert.equal(r3.gas.rawGrams, 628);
+
+// Fühler 2 steckt: 02 14 = 22,0 °C; Fühler 3: 01 3c = 16,0 °C
+const r4 = decodePacket(real(idle.replace('96 00 96 00 96 00 96 00 02', '96 00 02 14 96 00 96 00 02')));
+assert.deepEqual(r4.probes, [null, 22, null, null]);
+const r5 = decodePacket(real(idle.replace('96 00 96 00 96 00 96 00 02', '96 00 96 00 01 3c 96 00 02')));
+assert.deepEqual(r5.probes, [null, null, 16, null]);
+
+// 32-Byte-Variante (erstes Read ohne Schlussbyte) wird ebenfalls dekodiert
+const r6 = decodePacket(real(idle).slice(0, 32));
+assert.equal(r6.unknown.tail, null);
+assert.deepEqual(r6.zones, [4, 4, 5, 4]);
+
 console.log('decoder: alle Tests ok');
