@@ -15,7 +15,7 @@ Werte auslesen, Zieltemperaturen setzen und Gasflasche (GasBuddy) anlernen, beid
 
 ```bash
 cd web
-python3 -m http.server 8000
+python3 serve.py          # Dev-Server ohne Caching (nicht python -m http.server, Chrome cached JS-Module)
 # Chrome/Edge öffnen:
 #   http://localhost:8000/index.html     Dashboard (Zonen, Fühler, Ziele, Gas, Flaschenprofile)
 #   http://localhost:8000/explorer.html  BLE-Explorer (Services, Rohdaten, unbekannte Bytes)
