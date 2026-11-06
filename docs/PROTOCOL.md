@@ -12,19 +12,29 @@ Ausgangsbasis unten. "Offen" ist ungeklärt.
   ca. 2,4 s (Median 2401 ms, max 2521 ms), Polling ist nicht nötig. Ein Read direkt nach dem Verbinden liefert
   32 Byte, Notifications haben 33 Byte.
 - Verbinden und Notifications abonnieren klappte im Test (Web Bluetooth, Chrome) ohne Bonding-Dialog.
-- Zweite Characteristic `5f8b9bdc-86f7-4c68-9dce-3d1d4cb21b95` mit notify/indicate: Abonnieren schlägt mit
-  "GATT Error Unknown" fehl. Rolle unbekannt, Kandidat für einen Befehls-/Antwortkanal (siehe Offen).
+- Weitere Characteristics siehe GATT-Struktur unten. Das Abonnieren von `5f8b9bdc-…` schlägt mit
+  "GATT Error Unknown" fehl (möglicherweise Pairing/Verschlüsselung nötig).
 
-**GATT-Struktur** (Explorer-Mitschnitt; Properties noch nicht erfasst, der Explorer zeigte wegen eines Fehlers `[]`)
+**GATT-Struktur** (Explorer, Properties am eigenen Grill gelesen)
 
-| Service | Characteristics |
-|---------|-----------------|
-| `0000180a` Device Information | `2a24` (Modellnummer), `2a26` (Firmware-Revision), `2a29` (Hersteller), außerdem `5f8b9bd0`, `5f8b9bda`, `5f8b9bdb`, `5f8b9bdc` (Basis `-86f7-4c68-9dce-3d1d4cb21b95`) |
-| `dc0f41ea-…` (G32) | `dc0f41e1` (Rolle unbekannt, Schwester der Daten-Characteristic, Kandidat für Befehle), `dc0f41e2` (Daten) |
-| `00001800` Generic Access | `2a00` (Gerätename), `2a01` (Appearance) |
+| Service | Characteristic | Properties | Rolle |
+|---------|----------------|------------|-------|
+| `0000180a` Device Information | `2a24` | read | Modellnummer |
+| | `2a26` | read | Firmware-Revision |
+| | `2a29` | read | Hersteller |
+| | `5f8b9bd0-86f7-4c68-9dce-3d1d4cb21b95` | read | unbekannt |
+| | `5f8b9bda-…` | read | unbekannt |
+| | `5f8b9bdb-…` | read, write | unbekannt |
+| | `5f8b9bdc-…` | read, notify | unbekannt (Abonnieren schlug mit "GATT Error Unknown" fehl) |
+| `dc0f41ea-b6ae-46a8-a19e-1a3bf4342bcb` (G32) | `dc0f41e1-…` | **write** | unbekannt, Schwester der Daten-Characteristic, Kandidat für Befehle |
+| | `dc0f41e2-…` | read, notify | Daten (siehe unten) |
+| `00001800` Generic Access | `2a00`, `2a01` | read | Gerätename, Appearance |
 
-Die vier `5f8b9bd…`-Characteristics liegen laut Mitschnitt unter dem Device-Information-Service. Wofür sie dienen,
-ist unbekannt. Das Abonnieren von `5f8b9bdc` schlug fehl.
+- `5f8b9bdb` (write) und `5f8b9bdc` (notify) sehen wie ein Anfrage/Antwort-Paar aus, Zweck unbekannt
+  (denkbar: Konfiguration, Geräteinfo oder Firmware-Update, reine Vermutung).
+- Die Write-Characteristics werden **nicht** beschrieben. Ohne Kenntnis der Befehle ist das nicht
+  sicher (Konfig, Reset oder Firmware-Update sind nicht auszuschließen). Befehle nur aus einem
+  HCI-Snoop-Log der Original-App ableiten.
 
 **Datenblock** (Index = Byte-Offset, `hi`/`lo` = zwei aufeinanderfolgende Bytes)
 
@@ -62,8 +72,8 @@ ist unbekannt. Das Abonnieren von `5f8b9bdc` schlug fehl.
 ## Offen
 - [ ] **GasBuddy:** Was bedeutet der Rohwert (624–628) und das Prozent-Byte (8)? Zu klären mit der Original-App
   (welche Flasche liegt auf, welcher Wert wird dort gezeigt). Die Gas-Kalibrierung in der App deckt das ab.
-- [ ] Rolle der Characteristic `5f8b9bdc-…` (Abonnieren scheitert, vermutlich Pairing/Verschlüsselung nötig oder
-  Indicate-only mit geschütztem Zugriff). Properties im Explorer-Abschnitt "Services" prüfen.
+- [ ] Rolle von `dc0f41e1` (write) sowie `5f8b9bdb` (write) und `5f8b9bdc` (notify). Lesewerte der lesbaren
+  Characteristics (Modell, Firmware, `5f8b9bd0/da/db/dc`) per Explorer-Button "Lesbare Werte lesen" erfassen.
 - [ ] Schreibbefehle (Zieltemperatur am Grill, GasBuddy anlernen): In keinem der Fremdprojekte vorhanden, deren
   "Temperaturlimits" sind reine Display-Alarme. **Nicht mehr nötig:** Die App setzt Ziele und Gasprofile selbst
   (siehe SPEC.md). Nur relevant, falls der Grill die Werte später selbst regeln soll (HCI-Snoop-Log der Original-App).
