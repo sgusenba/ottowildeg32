@@ -7,15 +7,19 @@ Werte auslesen, Zieltemperaturen setzen, später Gasflasche (GasBuddy) anlernen.
 - **ESP32:** BLE-Bridge. Verbindet sich mit dem Grill und reicht Rohbytes per WebSocket an den Browser durch.
 - **Test am Laptop:** Dieselbe Web-App spricht direkt per Web Bluetooth (Chrome/Edge) mit dem Grill.
 
-> Status: Protokoll noch unbekannt. Phase 0 ist der BLE-Explorer in `web/explorer.html`.
-> Siehe [docs/SPEC.md](docs/SPEC.md) und [docs/PROTOCOL.md](docs/PROTOCOL.md).
+> Status: Lesen ist aus Fremdprojekten bekannt und im Dashboard umgesetzt, aber noch nicht am Grill getestet.
+> **Zieltemperatur am Grill setzen** ist offen: Das Schreibprotokoll ist nirgends dokumentiert und muss per
+> HCI-Snoop-Log ermittelt werden. Siehe [docs/SPEC.md](docs/SPEC.md) und [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 ## Schnellstart (Laptop)
 
 ```bash
 cd web
 python3 -m http.server 8000
-# Chrome/Edge öffnen: http://localhost:8000/explorer.html
+# Chrome/Edge öffnen:
+#   http://localhost:8000/index.html     Dashboard (Zonen, Fühler, Gas, Alarmgrenzen)
+#   http://localhost:8000/explorer.html  BLE-Explorer (Services, Rohdaten, unbekannte Bytes)
+node test/decoder.test.mjs              # Decoder-Test (Node 18+)
 ```
 
 Web Bluetooth funktioniert nur auf `localhost` oder über https, und nur in Chrome/Edge (nicht Firefox/Safari).
@@ -30,10 +34,12 @@ Vorher:
 docs/SPEC.md        Architektur, Meilensteine, Sicherheitsregeln
 docs/PROTOCOL.md    Was über das BLE-Protokoll bekannt ist (wird laufend ergänzt)
 web/                Web-App (Plain JS)
-  explorer.html     Phase 0: Services/Characteristics/Notifications sichtbar machen
-  index.html        Dashboard (folgt, sobald das Protokoll steht)
-  js/transport/     webbluetooth.js (Laptop), websocket.js (ESP32)
-  js/decoder.js     Rohbytes -> Werte (Stub)
+  index.html        Dashboard: Zonen, Fühler, Gas, Haube/Licht, lokale Alarmgrenzen mit Ton
+  explorer.html     Services/Characteristics, Rohdaten-Log, dekodierte Werte
+  js/g32.js         UUIDs und Konstanten
+  js/decoder.js     Rohbytes -> Werte
+  js/transport/     webbluetooth.js (Laptop), websocket.js (ESP32, Platzhalter)
+  test/             Decoder-Test
 esp32/              Firmware der Bridge (folgt)
 ```
 
@@ -43,3 +49,8 @@ esp32/              Firmware der Bridge (folgt)
 - Sollwerte werden vor dem Senden auf Bereich und Schrittweite geprüft.
 - Ein Grill mit gesetzter Zieltemperatur darf nicht unbeaufsichtigt laufen.
 - Inoffizielles Projekt, nicht von Otto Wilde. Nutzung auf eigene Gefahr.
+
+## Danksagung
+Protokoll-Fakten (UUIDs, Datenlayout) stammen aus den Projekten von
+[JBecker32](https://github.com/JBecker32/G32-Display-480x320-BT) und
+[fschwarz86](https://github.com/fschwarz86/g32) sowie dem GSV-Forum. Es wurde kein Code übernommen.

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>G32 Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header class="top">
+      <h1>G32 Dashboard</h1>
+      <div class="row">
+        <button id="connect">Verbinden</button>
+        <button id="disconnect" class="secondary" disabled>Trennen</button>
+        <label class="check inline"><input type="checkbox" id="mute"> Ton aus</label>
+        <span id="status" class="status">Nicht verbunden</span>
+      </div>
+    </header>
+
+    <div id="alarm" class="alarm" hidden></div>
+
+    <section>
+      <h2>Zonen</h2>
+      <div id="zones" class="grid"></div>
+    </section>
+
+    <section>
+      <h2>Fühler</h2>
+      <div id="probes" class="grid"></div>
+    </section>
+
+    <section>
+      <h2>Gas</h2>
+      <div class="card" id="gas">
+        <div class="bar"><div id="gasBar" class="bar-fill"></div></div>
+        <div class="gas-values"><span id="gasPercent">–</span><span id="gasGrams" class="muted">–</span></div>
+        <label class="limit">Warnung unter
+          <input id="gasLimit" type="number" min="0" max="100" step="5" inputmode="numeric"> %
+        </label>
+      </div>
+    </section>
+
+    <section class="chips">
+      <span class="chip" id="hood">Haube: –</span>
+      <span class="chip" id="light">Licht: –</span>
+    </section>
+
+    <p class="hint">
+      Alarmgrenzen gelten nur lokal in diesem Browser und lösen einen Ton aus.
+      Die Zieltemperatur am Grill zu setzen folgt, sobald das Schreibprotokoll bekannt ist
+      (siehe <a href="explorer.html">Explorer</a> und docs/PROTOCOL.md).
+    </p>
+
+    <details>
+      <summary>Rohdaten</summary>
+      <pre id="raw">–</pre>
+    </details>
+  </main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

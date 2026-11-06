@@ -39,13 +39,18 @@ Implementierungen: `transport/webbluetooth.js` (Laptop), `transport/websocket.js
 - Zugriffsschutz: einfacher Token beim WebSocket-Connect.
 
 ## Meilensteine
-| # | Inhalt | Ergebnis |
-|---|--------|----------|
-| 0 | BLE-Explorer am Laptop, nRF Connect, HCI-Snoop-Log der Original-App | UUIDs, Paketformat -> `PROTOCOL.md` |
-| 1 | Decoder + Dashboard (nur lesen) via Web Bluetooth | Live-Werte am Laptop |
-| 2 | Temperaturen setzen (mit Validierung) | Sollwerte funktionieren |
-| 3 | ESP32-Bridge + WebSocket-Transport | Handy im WLAN statt Laptop-BLE |
-| 4 | GasBuddy anlernen (falls BLE-fähig) | Tara/Kapazität setzen |
+| # | Inhalt | Status |
+|---|--------|--------|
+| 0 | BLE-Explorer am Laptop | erledigt (`web/explorer.html`) |
+| 1 | Decoder + Dashboard (nur lesen) via Web Bluetooth | gebaut, Test am Grill steht aus |
+| 1b | Lokale Alarmgrenzen (Ton), Gas-Warnung | gebaut |
+| 2 | Zieltemperatur am Grill setzen | blockiert: Schreibprotokoll unbekannt, HCI-Snoop-Log nötig |
+| 3 | ESP32-Bridge + WebSocket-Transport | offen |
+| 4 | GasBuddy anlernen (falls BLE-fähig) | offen, hängt an Meilenstein 2 |
+
+Hinweis zu Meilenstein 3: Fertige ESPHome-Projekte lesen die Daten-Characteristic bereits stabil per BLE.
+Der ESP32 braucht also nur Connect, Read/Notify und das Durchreichen. Das NimBLE-Gerüst bleibt klein.
+Bei Read-only-Characteristic (kein Notify) pollt die Bridge im 1–2-Sekunden-Takt.
 
 ## Sicherheitsregeln
 - Keine Zünd-/Brennerbefehle implementieren.

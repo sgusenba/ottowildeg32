@@ -10,21 +10,22 @@
   <main>
     <h1>G32 BLE-Explorer</h1>
     <p class="hint">
-      Read-only: listet Services und Characteristics und loggt Notifications. Es wird nichts geschrieben.<br>
-      Vorher: Otto-Wilde-App schließen, am Grill Bluetooth-Taste 2 s drücken.
+      Read-only: listet Services und Characteristics, loggt Daten als Hex und zeigt die dekodierten Werte.
+      Es wird nichts geschrieben. Vorher: Otto-Wilde-App schließen, am Grill Bluetooth-Taste 2 s drücken.
+      <a href="index.html">Zum Dashboard</a>
     </p>
 
     <section>
-      <label>Zusätzliche Service-UUIDs (kommagetrennt, aus nRF Connect)
-        <input id="uuids" placeholder="z. B. 0000ffe0-0000-1000-8000-00805f9b34fb, 6e400001-b5a3-f393-e0a9-e50e24dcca9e">
+      <label>Service-UUIDs (kommagetrennt)
+        <input id="uuids">
       </label>
+      <label class="check"><input type="checkbox" id="all"> Alle BLE-Geräte anzeigen (statt nur „OWG-G32C…“)</label>
       <div class="row">
         <button id="connect">Verbinden</button>
         <button id="disconnect" disabled>Trennen</button>
         <button id="download" disabled>Log als .txt</button>
         <span id="status" class="status">Nicht verbunden</span>
       </div>
-      <p class="hint">Ohne passende Service-UUID zeigt Chrome keine Services des Grills an. Erst mit nRF Connect ermitteln.</p>
     </section>
 
     <section>
@@ -33,7 +34,12 @@
     </section>
 
     <section>
-      <h2>Notifications</h2>
+      <h2>Dekodierte Werte</h2>
+      <pre id="decoded">–</pre>
+    </section>
+
+    <section>
+      <h2>Rohdaten-Log</h2>
       <pre id="log"></pre>
     </section>
   </main>

@@ -1,5 +1,6 @@
 import { WebBluetoothTransport } from './transport/webbluetooth.js';
-import { toHex } from './decoder.js';
+import { toHex, decodePacket } from './decoder.js';
+import { G32 } from './g32.js';
 
 const $ = (id) => document.getElementById(id);
 const logEl = $('log');
@@ -18,17 +19,35 @@ function parseUuids(text) {
   return text.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 }
 
+$('uuids').value = G32.SERVICE;
+
 $('connect').addEventListener('click', async () => {
   try {
-    transport = new WebBluetoothTransport({ serviceUuids: parseUuids($('uuids').value) });
+    transport = new WebBluetoothTransport({
+      acceptAll: $('all').checked,
+      serviceUuids: parseUuids($('uuids').value),
+    });
     transport.addEventListener('status', (e) => {
       $('status').textContent = e.detail;
       log(`[status] ${e.detail}`);
     });
     transport.addEventListener('error', (e) => log(`[fehler] ${e.detail.message}`));
+    transport.addEventListener('disconnected', () => {
+      $('connect').disabled = false;
+      $('disconnect').disabled = true;
+    });
     transport.addEventListener('packet', (e) => {
       const { uuid, bytes } = e.detail;
       log(`${uuid}  (${bytes.length} B)  ${toHex(bytes)}`);
+      if (uuid === G32.DATA_CHAR) {
+        const d = decodePacket(bytes);
+        if (d) {
+          $('decoded').textContent = JSON.stringify(
+            { ...d, unknown: { ...d.unknown, header: toHex(d.unknown.header), b26_29: toHex(d.unknown.b26_29) } },
+            null, 2,
+          );
+        }
+      }
     });
     transport.addEventListener('services', (e) => {
       $('services').textContent = e.detail
@@ -38,6 +57,10 @@ $('connect').addEventListener('click', async () => {
 
     await transport.connect();
     await transport.subscribeAll();
+    if (transport.chars.has(G32.DATA_CHAR)) {
+      const mode = await transport.startData(G32.DATA_CHAR, { pollMs: 2000 });
+      log(`[info] Daten-Characteristic: ${mode}`);
+    }
     $('connect').disabled = true;
     $('disconnect').disabled = false;
     $('download').disabled = false;
