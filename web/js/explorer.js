@@ -64,9 +64,18 @@ $('connect').addEventListener('click', async () => {
     $('connect').disabled = true;
     $('disconnect').disabled = false;
     $('download').disabled = false;
+    $('readAll').disabled = false;
   } catch (err) {
     log(`[fehler] ${err.message}`);
     $('status').textContent = 'Fehler';
+  }
+});
+
+$('readAll').addEventListener('click', async () => {
+  const ascii = (b) => Array.from(b, (x) => (x >= 32 && x < 127 ? String.fromCharCode(x) : '.')).join('');
+  for (const r of await transport.readAll()) {
+    if (r.error) log(`[read] ${r.uuid}  Fehler: ${r.error}`);
+    else log(`[read] ${r.uuid}  (${r.bytes.length} B)  ${toHex(r.bytes)}  "${ascii(r.bytes)}"`);
   }
 });
 
@@ -74,6 +83,7 @@ $('disconnect').addEventListener('click', async () => {
   await transport?.disconnect();
   $('connect').disabled = false;
   $('disconnect').disabled = true;
+  $('readAll').disabled = true;
 });
 
 $('download').addEventListener('click', () => {

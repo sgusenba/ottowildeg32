@@ -4,6 +4,11 @@
 
 import { G32 } from '../g32.js';
 
+// BluetoothCharacteristicProperties hat Getter statt eigener Felder, Object.entries liefert daher nichts.
+const PROP_NAMES = ['broadcast', 'read', 'writeWithoutResponse', 'write', 'notify', 'indicate',
+  'authenticatedSignedWrites', 'reliableWrite', 'writableAuxiliaries'];
+const propsOf = (c) => PROP_NAMES.filter((k) => c.properties[k]);
+
 export class WebBluetoothTransport extends EventTarget {
   // acceptAll=false: nur Geräte mit G32-Namen; acceptAll=true: alle BLE-Geräte (für den Explorer)
   constructor({ acceptAll = false, serviceUuids = [G32.SERVICE] } = {}) {
@@ -56,8 +61,7 @@ export class WebBluetoothTransport extends EventTarget {
         this._emit('error', new Error(`Characteristics von ${svc.uuid}: ${e.message}`));
       }
       for (const c of chars) {
-        const props = Object.entries(c.properties).filter(([, v]) => v).map(([k]) => k);
-        entry.characteristics.push({ uuid: c.uuid, props });
+        entry.characteristics.push({ uuid: c.uuid, props: propsOf(c) });
         this.chars.set(c.uuid, c);
       }
       found.push(entry);
@@ -128,6 +132,20 @@ export class WebBluetoothTransport extends EventTarget {
     const c = this.chars.get(uuid);
     if (!c || !c.properties.read) throw new Error(`${uuid} nicht lesbar`);
     return this._toBytes(await c.readValue());
+  }
+
+  // Alle lesbaren Characteristics einmal lesen (nur Lesezugriffe, schreibt nichts).
+  async readAll() {
+    const out = [];
+    for (const [uuid, c] of this.chars) {
+      if (!c.properties.read) continue;
+      try {
+        out.push({ uuid, bytes: await this.readOnce(uuid) });
+      } catch (e) {
+        out.push({ uuid, error: e.message });
+      }
+    }
+    return out;
   }
 
   // Schreiben wird erst ab Meilenstein 2 genutzt (Schreibprotokoll noch unbekannt).

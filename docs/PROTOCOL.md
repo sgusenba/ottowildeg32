@@ -15,6 +15,17 @@ Ausgangsbasis unten. "Offen" ist ungeklärt.
 - Zweite Characteristic `5f8b9bdc-86f7-4c68-9dce-3d1d4cb21b95` mit notify/indicate: Abonnieren schlägt mit
   "GATT Error Unknown" fehl. Rolle unbekannt, Kandidat für einen Befehls-/Antwortkanal (siehe Offen).
 
+**GATT-Struktur** (Explorer-Mitschnitt; Properties noch nicht erfasst, der Explorer zeigte wegen eines Fehlers `[]`)
+
+| Service | Characteristics |
+|---------|-----------------|
+| `0000180a` Device Information | `2a24` (Modellnummer), `2a26` (Firmware-Revision), `2a29` (Hersteller), außerdem `5f8b9bd0`, `5f8b9bda`, `5f8b9bdb`, `5f8b9bdc` (Basis `-86f7-4c68-9dce-3d1d4cb21b95`) |
+| `dc0f41ea-…` (G32) | `dc0f41e1` (Rolle unbekannt, Schwester der Daten-Characteristic, Kandidat für Befehle), `dc0f41e2` (Daten) |
+| `00001800` Generic Access | `2a00` (Gerätename), `2a01` (Appearance) |
+
+Die vier `5f8b9bd…`-Characteristics liegen laut Mitschnitt unter dem Device-Information-Service. Wofür sie dienen,
+ist unbekannt. Das Abonnieren von `5f8b9bdc` schlug fehl.
+
 **Datenblock** (Index = Byte-Offset, `hi`/`lo` = zwei aufeinanderfolgende Bytes)
 
 | Bytes | Inhalt | Kodierung |
