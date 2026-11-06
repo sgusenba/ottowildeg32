@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>G32 BLE-Explorer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>G32 BLE-Explorer</h1>
+    <p class="hint">
+      Read-only: listet Services und Characteristics und loggt Notifications. Es wird nichts geschrieben.<br>
+      Vorher: Otto-Wilde-App schließen, am Grill Bluetooth-Taste 2 s drücken.
+    </p>
+
+    <section>
+      <label>Zusätzliche Service-UUIDs (kommagetrennt, aus nRF Connect)
+        <input id="uuids" placeholder="z. B. 0000ffe0-0000-1000-8000-00805f9b34fb, 6e400001-b5a3-f393-e0a9-e50e24dcca9e">
+      </label>
+      <div class="row">
+        <button id="connect">Verbinden</button>
+        <button id="disconnect" disabled>Trennen</button>
+        <button id="download" disabled>Log als .txt</button>
+        <span id="status" class="status">Nicht verbunden</span>
+      </div>
+      <p class="hint">Ohne passende Service-UUID zeigt Chrome keine Services des Grills an. Erst mit nRF Connect ermitteln.</p>
+    </section>
+
+    <section>
+      <h2>Services</h2>
+      <pre id="services">–</pre>
+    </section>
+
+    <section>
+      <h2>Notifications</h2>
+      <pre id="log"></pre>
+    </section>
+  </main>
+  <script type="module" src="js/explorer.js"></script>
+</body>
+</html>
