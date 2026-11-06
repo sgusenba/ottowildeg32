@@ -1,7 +1,7 @@
 # Otto Wilde G32 Connected – Web-App + ESP32-Bridge
 
 Lokale Steuerung des Otto Wilde G32 Connected per Bluetooth (BLE), ohne Cloud:
-Werte auslesen, Zieltemperaturen setzen, später Gasflasche (GasBuddy) anlernen.
+Werte auslesen, Zieltemperaturen setzen und Gasflasche (GasBuddy) anlernen, beides in der App.
 
 - **Web-App:** Plain JavaScript (ES-Module), keine Frameworks, kein Build-Schritt.
 - **ESP32:** BLE-Bridge. Verbindet sich mit dem Grill und reicht Rohbytes per WebSocket an den Browser durch.
