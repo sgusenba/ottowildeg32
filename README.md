@@ -17,7 +17,7 @@ Werte auslesen, Zieltemperaturen setzen und Gasflasche (GasBuddy) anlernen, beid
 cd web
 python3 serve.py          # Dev-Server ohne Caching (nicht python -m http.server, Chrome cached JS-Module)
 # Chrome/Edge öffnen:
-#   http://localhost:8000/index.html     Dashboard (Zonen, Fühler, Ziele, Gas, Flaschenprofile)
+#   http://localhost:8000/index.html     Dashboard: 3 Seiten per Wischen (Zonen | Fühler mit Zielen | Config), Gas immer sichtbar
 #   http://localhost:8000/explorer.html  BLE-Explorer (Services, Rohdaten, unbekannte Bytes)
 node test/decoder.test.mjs && node test/logic.test.mjs   # Tests (Node 18+)
 ```
@@ -35,7 +35,7 @@ Vorher:
 docs/SPEC.md        Architektur, Meilensteine, Sicherheitsregeln
 docs/PROTOCOL.md    Was über das BLE-Protokoll bekannt ist (wird laufend ergänzt)
 web/                Web-App (Plain JS)
-  index.html        Dashboard: Zonen, Fühler, Zieltemperaturen, Gas mit Flaschenprofilen, Haube/Licht, Ton
+  index.html        Dashboard: Seiten Zonen / Fühler (mit Zielen) / Config (Verbindung, Gas, Flaschenprofile), Gas im Kopf immer sichtbar
   explorer.html     Services/Characteristics, Rohdaten-Log, dekodierte Werte
   js/g32.js         UUIDs und Konstanten
   js/decoder.js     Rohbytes -> Werte

@@ -44,7 +44,7 @@ const STATE_TEXT = {
   over: () => 'zu heiß',
 };
 
-function buildCards(containerId, kind, label) {
+function buildCards(containerId, kind, label, withTarget) {
   const range = RANGES[kind];
   const cards = [];
   for (let i = 0; i < 4; i++) {
@@ -75,9 +75,12 @@ function buildCards(containerId, kind, label) {
     minus.addEventListener('click', () => nudge(c, -range.step));
     plus.addEventListener('click', () => nudge(c, +range.step));
 
-    card.append(name, value, status, bar, row);
+    card.append(name, value, status, bar);
+    if (withTarget) {
+      card.append(row);
+      syncInput(c);
+    }
     $(containerId).append(card);
-    syncInput(c);
     cards.push(c);
   }
   return cards;
@@ -113,8 +116,8 @@ function nudge(c, delta) {
   }
 }
 
-const zoneCards = buildCards('zones', 'zone', 'Zone');
-const probeCards = buildCards('probes', 'probe', 'Fühler');
+const zoneCards = buildCards('zones', 'zone', 'Zone', false);
+const probeCards = buildCards('probes', 'probe', 'Fühler', true);
 
 // ---------- Gas ----------
 $('gasLimit').value = state.gas.lowPercent;
@@ -213,7 +216,7 @@ function renderGroup(cards, values, alarms, notices) {
   let newlyReached = false;
   cards.forEach((c, i) => {
     const t = values ? values[i] : null;
-    const target = state.targets[c.key];
+    const target = c.kind === 'zone' ? undefined : state.targets[c.key];
     const prev = prevStates.get(c.key) || 'idle';
     const s = targetState(t, target, c.kind, prev);
     prevStates.set(c.key, s);
@@ -224,7 +227,8 @@ function renderGroup(cards, values, alarms, notices) {
     c.card.classList.toggle('inactive', t == null);
     c.card.classList.toggle('reached', s === 'reached');
     c.card.classList.toggle('over', s === 'over');
-    c.fill.style.width = `${t != null && target ? Math.min(100, Math.max(0, (t / target) * 100)) : 0}%`;
+    const scale = target || RANGES.zone.max; // Zonen: Balken relativ zum Maximalbereich
+    c.fill.style.width = `${t != null ? Math.min(100, Math.max(0, (t / scale) * 100)) : 0}%`;
 
     if (s === 'reached' && prev !== 'reached') newlyReached = true;
     if (s === 'reached') notices.push(`${label}: Ziel ${target} °C erreicht`);
@@ -247,14 +251,13 @@ function render() {
   const cal = d && profile ? calibratedGas(d.gas.rawGrams, profile) : null;
   const pct = cal ? cal.percent : (d?.gas.percent ?? null);
   $('gasPercent').textContent = pct == null ? '–' : `${pct} %`;
-  $('gasGrams').textContent = cal
-    ? `${(cal.remainingGrams / 1000).toFixed(1)} kg Rest`
-    : d ? `${d.gas.grams} g` : '–';
+  $('gasGrams').textContent = cal ? `${(cal.remainingGrams / 1000).toFixed(1)} kg` : '';
   $('gasSource').textContent = cal ? `Profil: ${profile.name}` : 'Wert vom Grill (kein Profil)';
   $('gasRaw').textContent = d ? `${d.gas.rawGrams} g` : '–';
   $('gasBar').style.width = `${pct == null ? 0 : pct}%`;
   const gasLow = pct != null && pct <= state.gas.lowPercent;
   $('gas').classList.toggle('over', gasLow);
+  $('gas').classList.toggle('inactive', pct == null);
   if (gasLow) alarms.push(`Gas niedrig: ${pct} %`);
 
   $('hood').textContent = `Haube: ${d ? (d.hoodOpen ? 'offen' : 'zu') : '–'}`;
@@ -376,6 +379,39 @@ $('disconnect').addEventListener('click', async () => {
   await transport?.disconnect();
 });
 
+// ---------- Seiten: Wischen (Scroll-Snap) + Tabs ----------
+const pager = $('pager');
+const tabs = [...document.querySelectorAll('.tab')];
+const PAGE_NAMES = ['zonen', 'fuehler', 'config'];
+let pageIdx = 0;
+
+function setActive(i) {
+  pageIdx = i;
+  tabs.forEach((t, k) => {
+    t.classList.toggle('active', k === i);
+    t.setAttribute('aria-selected', String(k === i));
+  });
+  try { history.replaceState(null, '', `#${PAGE_NAMES[i]}`); } catch { /* ignorieren */ }
+}
+
+function goTo(i, smooth = true) {
+  i = Math.max(0, Math.min(PAGE_NAMES.length - 1, i));
+  pager.scrollTo({ left: i * pager.clientWidth, behavior: smooth ? 'smooth' : 'auto' });
+  setActive(i);
+}
+
+tabs.forEach((t, i) => t.addEventListener('click', () => goTo(i)));
+pager.addEventListener('scroll', () => {
+  const i = Math.round(pager.scrollLeft / pager.clientWidth);
+  if (i !== pageIdx) setActive(i);
+}, { passive: true });
+window.addEventListener('resize', () => goTo(pageIdx, false));
+document.addEventListener('keydown', (e) => {
+  if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.key === 'ArrowLeft') goTo(pageIdx - 1);
+  if (e.key === 'ArrowRight') goTo(pageIdx + 1);
+});
+
 setInterval(render, 2000); // Stale-Erkennung und Alarm-Wiederholung
 
 if (bridgeMode) {
@@ -387,3 +423,7 @@ if (bridgeMode) {
   $('connect').disabled = true;
 }
 render();
+
+// Startseite: #config usw. aus der URL; ohne Bridge zuerst die Config-Seite (dort steht "Verbinden")
+const hashIdx = PAGE_NAMES.indexOf(location.hash.slice(1));
+goTo(hashIdx >= 0 ? hashIdx : (bridgeMode ? 0 : 2), false);

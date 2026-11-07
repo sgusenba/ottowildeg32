@@ -50,7 +50,7 @@ Implementierungen: `transport/webbluetooth.js` (Laptop), `transport/websocket.js
 |---|--------|--------|
 | 0 | BLE-Explorer am Laptop | erledigt (`web/explorer.html`) |
 | 1 | Decoder + Dashboard (nur lesen) via Web Bluetooth | gebaut, Test am Grill steht aus |
-| 2 | Zieltemperaturen in der App (+/-, Status, Ton) | gebaut (`targets.js`) |
+| 2 | Zieltemperaturen für Fühler in der App (+/-, Status, Ton); Zonen nur Anzeige | gebaut (`targets.js`) |
 | 3 | Gasflasche anlernen in der App (Profile, Kalibrierung) | gebaut (`gas.js`) |
 | 4 | ESP32-Bridge + WebSocket-Transport | gebaut; Browser-Seite mit Mock getestet, Firmware noch nicht auf Hardware |
 | 5 | Optional: Ziele/Profile zusätzlich auf dem ESP32 ablegen, damit sie geräteübergreifend gelten | offen |

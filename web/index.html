@@ -2,98 +2,108 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>G32 Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
+  <div class="app">
     <header class="top">
-      <h1>G32 Dashboard</h1>
-      <div class="row">
-        <button id="connect">Verbinden</button>
-        <button id="disconnect" class="secondary" disabled>Trennen</button>
-        <label class="check inline"><input type="checkbox" id="mute"> Ton aus</label>
+      <div class="top-row">
+        <h1>G32</h1>
         <span id="status" class="status">Nicht verbunden</span>
+        <span class="chips">
+          <span class="chip" id="hood">Haube: –</span>
+          <span class="chip" id="light">Licht: –</span>
+        </span>
       </div>
+
+      <!-- Gas: auf jeder Seite sichtbar -->
+      <div id="gas" class="gas-strip">
+        <span class="gas-label">Gas</span>
+        <div class="bar"><div id="gasBar" class="bar-fill"></div></div>
+        <span id="gasPercent" class="gas-pct">–</span>
+        <span id="gasGrams" class="muted gas-g">–</span>
+      </div>
+
+      <div id="alarm" class="banner alarm" hidden></div>
+      <div id="notice" class="banner notice" hidden></div>
+      <div id="msg" class="banner msg" hidden></div>
+
+      <nav class="tabs" role="tablist" aria-label="Seiten">
+        <button class="tab active" role="tab" data-page="0">Zonen</button>
+        <button class="tab" role="tab" data-page="1">Fühler</button>
+        <button class="tab" role="tab" data-page="2">Config</button>
+      </nav>
     </header>
 
-    <div id="alarm" class="banner alarm" hidden></div>
-    <div id="notice" class="banner notice" hidden></div>
-    <div id="msg" class="banner msg" hidden></div>
+    <main id="pager" class="pager">
+      <section class="page" id="page-zones" aria-label="Zonen">
+        <div id="zones" class="grid"></div>
+      </section>
 
-    <section>
-      <h2>Zonen</h2>
-      <div id="zones" class="grid"></div>
-    </section>
+      <section class="page" id="page-probes" aria-label="Fühler">
+        <div id="probes" class="grid"></div>
+        <p class="hint">Zieltemperaturen der Fühler werden nur in diesem Browser gespeichert; der Grill bekommt davon nichts mit.
+          Die App meldet „Ziel erreicht“ und warnt bei „zu heiß“.</p>
+      </section>
 
-    <section>
-      <h2>Fühler</h2>
-      <div id="probes" class="grid"></div>
-    </section>
-
-    <section>
-      <h2>Gas</h2>
-      <div class="card" id="gas">
-        <div class="bar"><div id="gasBar" class="bar-fill"></div></div>
-        <div class="gas-values"><span id="gasPercent">–</span><span id="gasGrams" class="muted">–</span></div>
-        <div class="muted" id="gasSource">–</div>
-        <label class="limit">Warnung unter
-          <input id="gasLimit" type="number" min="0" max="100" step="5" inputmode="numeric"> %
-        </label>
-      </div>
-
-      <details id="gasSetup">
-        <summary>Gasflasche anlernen</summary>
-        <p class="hint">
-          Ohne Profil zeigt die App den Wert, den der Grill meldet. Mit Profil rechnet die App selbst:
-          Flasche <b>leer</b> aufstellen, warten bis der Rohwert stabil ist, „Aktuellen Wert als Leer“ drücken.
-          Dasselbe mit der <b>vollen</b> Flasche. Alternativ Werte eintragen oder Tara + Füllmenge (steht auf der Flasche).
-          Der Rohwert wird unten angezeigt.
-        </p>
-        <div class="muted">Rohwert: <b id="gasRaw">–</b></div>
-
-        <label>Profil
-          <select id="profileSelect"></select>
-        </label>
-        <label>Name
-          <input id="profileName" type="text" placeholder="z. B. 11-kg-Flasche">
-        </label>
+      <section class="page" id="page-config" aria-label="Config">
+        <h2>Verbindung</h2>
         <div class="row">
-          <label class="limit">Leer (g) <input id="gasEmpty" type="number" step="10" inputmode="numeric"></label>
-          <button id="learnEmpty" class="secondary">Aktuellen Wert als Leer</button>
+          <button id="connect">Verbinden</button>
+          <button id="disconnect" class="secondary" disabled>Trennen</button>
+          <label class="check inline"><input type="checkbox" id="mute"> Ton aus</label>
         </div>
-        <div class="row">
-          <label class="limit">Voll (g) <input id="gasFull" type="number" step="10" inputmode="numeric"></label>
-          <button id="learnFull" class="secondary">Aktuellen Wert als Voll</button>
-        </div>
-        <div class="row">
-          <label class="limit">Tara (g) <input id="gasTare" type="number" step="10" inputmode="numeric"></label>
-          <label class="limit">Füllmenge (g) <input id="gasCapacity" type="number" step="500" inputmode="numeric" value="11000"></label>
-          <button id="fromTare" class="secondary">Leer/Voll berechnen</button>
-        </div>
-        <div class="row">
-          <button id="profileSave">Profil speichern</button>
-          <button id="profileDelete" class="secondary">Profil löschen</button>
-        </div>
-      </details>
-    </section>
 
-    <section class="chips">
-      <span class="chip" id="hood">Haube: –</span>
-      <span class="chip" id="light">Licht: –</span>
-    </section>
+        <h2>Gas</h2>
+        <div class="card">
+          <div id="gasSource" class="muted">–</div>
+          <div class="muted">Rohwert: <b id="gasRaw">–</b></div>
+          <label class="limit">Warnung unter
+            <input id="gasLimit" type="number" min="0" max="100" step="5" inputmode="numeric"> %
+          </label>
+        </div>
 
-    <p class="hint">
-      Zieltemperaturen und Gasprofile werden nur in diesem Browser gespeichert; der Grill bekommt davon nichts mit.
-      Die App meldet „Ziel erreicht“ und warnt bei „zu heiß“.
-    </p>
+        <h2>Gasflasche anlernen</h2>
+        <div id="gasSetup">
+          <p class="hint">
+            Ohne Profil zeigt die App den Wert, den der Grill meldet. Mit Profil rechnet die App selbst:
+            Flasche <b>leer</b> aufstellen, warten bis der Rohwert stabil ist, „Aktuellen Wert als Leer“ drücken.
+            Dasselbe mit der <b>vollen</b> Flasche. Alternativ Werte eintragen oder Tara + Füllmenge (steht auf der Flasche).
+          </p>
+          <label>Profil
+            <select id="profileSelect"></select>
+          </label>
+          <label>Name
+            <input id="profileName" type="text" placeholder="z. B. 11-kg-Flasche">
+          </label>
+          <div class="row">
+            <label class="limit">Leer (g) <input id="gasEmpty" type="number" step="10" inputmode="numeric"></label>
+            <button id="learnEmpty" class="secondary">Aktuellen Wert als Leer</button>
+          </div>
+          <div class="row">
+            <label class="limit">Voll (g) <input id="gasFull" type="number" step="10" inputmode="numeric"></label>
+            <button id="learnFull" class="secondary">Aktuellen Wert als Voll</button>
+          </div>
+          <div class="row">
+            <label class="limit">Tara (g) <input id="gasTare" type="number" step="10" inputmode="numeric"></label>
+            <label class="limit">Füllmenge (g) <input id="gasCapacity" type="number" step="500" inputmode="numeric" value="11000"></label>
+            <button id="fromTare" class="secondary">Leer/Voll berechnen</button>
+          </div>
+          <div class="row">
+            <button id="profileSave">Profil speichern</button>
+            <button id="profileDelete" class="secondary">Profil löschen</button>
+          </div>
+        </div>
 
-    <details>
-      <summary>Rohdaten</summary>
-      <pre id="raw">–</pre>
-    </details>
-  </main>
+        <details>
+          <summary>Rohdaten</summary>
+          <pre id="raw">–</pre>
+        </details>
+      </section>
+    </main>
+  </div>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
