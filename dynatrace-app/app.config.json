@@ -1,0 +1,14 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://abc12345.apps.dynatrace.com/",
+  "app": {
+    "name": "G32 Grill",
+    "version": "0.1.0",
+    "description": "Otto Wilde G32: Zonen, Fühler, Gas und Haube live und im Verlauf (Daten vom G32-Forwarder)",
+    "id": "my.g32.grill",
+    "scopes": [
+      { "name": "storage:metrics:read", "comment": "G32-Metriken (g32.*) aus Grail lesen" },
+      { "name": "storage:buckets:read", "comment": "Zugriff auf die Metrik-Buckets in Grail" }
+    ]
+  }
+}

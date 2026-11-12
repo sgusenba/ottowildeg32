@@ -6,6 +6,8 @@ Werte auslesen, Zieltemperaturen setzen und Gasflasche (GasBuddy) anlernen, beid
 - **Web-App:** Plain JavaScript (ES-Module), keine Frameworks, kein Build-Schritt.
 - **ESP32:** BLE-Bridge. Verbindet sich mit dem Grill und reicht Rohbytes per WebSocket an den Browser durch.
 - **Test am Laptop:** Dieselbe Web-App spricht direkt per Web Bluetooth (Chrome/Edge) mit dem Grill.
+- **Dynatrace (optional):** Ein Forwarder schickt die Werte der Bridge als Metriken an Dynatrace, eine Dynatrace-App
+  zeigt sie live und im Verlauf. Siehe [forwarder/README.md](forwarder/README.md) und [dynatrace-app/README.md](dynatrace-app/README.md).
 
 > Status: Lesen ist aus Fremdprojekten bekannt und im Dashboard umgesetzt, aber noch nicht am Grill getestet.
 > Zieltemperaturen und Gasflasche werden **in der App** gesetzt bzw. angelernt (lokal im Browser), nicht am Grill.
@@ -20,6 +22,7 @@ python3 serve.py          # Dev-Server ohne Caching (nicht python -m http.server
 #   http://localhost:8000/index.html     Dashboard: 3 Seiten per Wischen (Zonen | Fühler mit Zielen | Config), Gas immer sichtbar
 #   http://localhost:8000/explorer.html  BLE-Explorer (Services, Rohdaten, unbekannte Bytes)
 node test/decoder.test.mjs && node test/logic.test.mjs   # Tests (Node 18+)
+node ../forwarder/test/lines.test.mjs                     # Forwarder-Tests
 ```
 
 Web Bluetooth funktioniert nur auf `localhost` oder über https, und nur in Chrome/Edge (nicht Firefox/Safari).
@@ -46,6 +49,8 @@ web/                Web-App (Plain JS)
   test/             Unit-Tests (Decoder, Ziele, Gas)
 esp32/              ESP32-Bridge (PlatformIO): BLE -> WLAN, liefert das Dashboard aus, siehe esp32/README.md
 tools/mock-bridge.mjs  Simulierte Bridge zum Testen ohne Hardware
+forwarder/          Bridge -> Dynatrace Metrics API (Node 22+, ohne Abhängigkeiten)
+dynatrace-app/      Dynatrace-App (React/Strato): Live-Werte und Verlauf aus den Forwarder-Metriken
 ```
 
 ## Sicherheit
